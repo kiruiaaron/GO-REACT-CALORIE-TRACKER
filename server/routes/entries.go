@@ -15,12 +15,12 @@ import (
 )
 
 var entryCollection *mongo.Collection = OpenCollection(Client, "calories")
+var validate = validator.New()
 
 func AddEntry(c *gin.Context) {
 
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 	var entry models.Entry
-	var validate = validator.New()
 
 	if err := c.BindJSON(&entry); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -147,7 +147,7 @@ func UpdateEntry(c *gin.Context) {
 	docID, _ := primitive.ObjectIDFromHex(entryID)
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 	var entry models.Entry
-	var validate = validator.New()
+
 
 	if err := c.BindJSON(&entry); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
