@@ -2,15 +2,13 @@ package routes
 
 import (
 	"context"
-	"crypto/hmac"
-	"encoding/hex"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/kiruiaaron/GO-REACT-CALORIE-TRACKER/models"
-	"github.com/opencontainers/runc/libcontainer/configs/validate"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,8 +17,10 @@ import (
 var entryCollection *mongo.Collection = OpenCollection(Client, "calories")
 
 func AddEntry(c *gin.Context) {
+
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 	var entry models.Entry
+	var validate = validator.New()
 
 	if err := c.BindJSON(&entry); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -70,7 +70,30 @@ func GetEntries(c *gin.Context) {
 
 }
 
-func GetEntryByIngredient(c *gin.Context) {}
+func GetEntryByIngredient(c *gin.Context) {
+	ingredient := c.Params.ByName("id")
+	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second) 
+	var entries []bson.M
+
+    cursor, err := entryCollection.Find(ctx, bson.M{"ingredient":ingredient})
+    if err != nil{
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		fmt.Println(err)
+		return
+	}
+	if err = cursor.All(ctx, &entries); err != nil{
+		c.JSON(http.StatusInternalServerError, gin.H{"error":err.Error()})
+		fmt.Println(err)
+		return
+	}
+	defer cancel()
+	fmt.Println(entries)
+
+	c.JSON(http.StatusOK, entries)
+
+}
+
+
 
 func GetEntryById(c *gin.Context) {
 	EntryID := c.Params.ByName("id")
@@ -124,6 +147,7 @@ func UpdateEntry(c *gin.Context) {
 	docID, _ := primitive.ObjectIDFromHex(entryID)
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 	var entry models.Entry
+	var validate = validator.New()
 
 	if err := c.BindJSON(&entry); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
